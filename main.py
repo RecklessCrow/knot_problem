@@ -77,7 +77,7 @@ def find_start_end(puzzle):
 
         if start is None:
             row = False
-            reverse = False
+            reverse = True
             start = puzzle_pos[positions[0]]
             if len(positions) > 1:
                 end = puzzle_pos[positions[1]]
