@@ -89,8 +89,7 @@ def find_start_end(puzzle):
     return None, None, None, None
 
 
-# useing gauss code
-def puzzle_solver(puzzle):
+def generate_gauss_code(puzzle):
     crosses = ""
 
     start, end, row, reverse = find_start_end(puzzle)
@@ -140,10 +139,41 @@ def puzzle_solver(puzzle):
     return crosses
 
 
+def simplify_code(code):
+    i = 0
+    while i < len(code) - 1:
+        if abs(code[i]) == abs(code[i + 1]):
+            if i + 2 == len(code):
+                code = code[0:i]
+            else:
+                code = np.asarray([(lambda x: x - 1 if x > code[i] else x)(x) for x in code], dtype='int')
+                code = np.concatenate((code[0:i], code[i+2:]))
+                i = 0
+        i += 1
+    return code
+
+
+def solver(code):
+    i = 0
+    while i + 5 < len(code):
+        for j in range(i + 1, len(code) - 4):
+            for k in range(i + 2, len(code) - 3):
+                if code[i] != code[j] and code[i] != code[k] and code[j] != code[k] and code[i] * code[j] < 0 and code[j] * code[k] < 0:
+                    key = str(code[i]) + str(code[j]) + str(code[k])
+                    if key in ''.join([str(x * -1) for x in code[k+1:]]):
+                        return 'knotted'
+        i += 1
+    return 'straightened'
+
+
 if __name__ == '__main__':
     m = get_matrix()
     for idx, puzzle in enumerate(m):
-        crosses = puzzle_solver(np.array(puzzle))
-        knots = 'IHI' in crosses or 'HIH' in crosses
-        output = f'Case {idx + 1}: {"knotted" if knots else "straightened"}'
-        print(output)
+        #crosses = puzzle_solver(np.array(puzzle))
+        #knots = 'IHI' in crosses or 'HIH' in crosses
+        #output = f'Case {idx + 1}: {"knotted" if knots else "straightened"}'
+
+        output = simplify_code(test)
+
+        solution = solver(output)
+        print(solution)
