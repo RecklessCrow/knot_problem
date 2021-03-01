@@ -1,13 +1,10 @@
 import numpy as np
 
 
-FILE = 'input.txt'
-
-
-def get_matrix():
+def get_matrix(filename):
     matrix = []
 
-    with open(FILE) as f:
+    with open(filename) as f:
         puzzle = []
 
         for line in f:
@@ -90,7 +87,9 @@ def find_start_end(puzzle):
 
 
 def generate_gauss_code(puzzle):
-    crosses = ""
+    cross_dict = {}
+    cross_counter = 1
+    crosses = []
 
     start, end, row, reverse = find_start_end(puzzle)
 
@@ -101,14 +100,16 @@ def generate_gauss_code(puzzle):
         char = puzzle[pos]
 
         if row:
-            if char == 'H':
-                crosses += 'H'
-            elif char == 'I':
-                crosses += 'I'
+            if char == 'H' or char == 'I':
+                if pos not in cross_dict:
+                    cross_dict[pos] = cross_counter
+                    cross_counter += 1
+                val = cross_dict[pos] if char == 'H' else -cross_dict[pos]
+                crosses.append(val)
 
             if char == '+':
                 row = False
-                if puzzle[row_idx - 1, col_idx] == '|':
+                if puzzle[row_idx - 1, col_idx] in ['|', 'H', 'I']:
                     reverse = True
                     row_idx -= 1
                 else:
@@ -118,14 +119,16 @@ def generate_gauss_code(puzzle):
                 col_idx += 1 if not reverse else -1
 
         else:
-            if char == 'H':
-                crosses += 'I'
-            elif char == 'I':
-                crosses += 'H'
+            if char == 'H' or char == 'I':
+                if pos not in cross_dict:
+                    cross_dict[pos] = cross_counter
+                    cross_counter += 1
+                val = -cross_dict[pos] if char == 'H' else cross_dict[pos]
+                crosses.append(val)
 
             if char == '+':
                 row = True
-                if puzzle[row_idx, col_idx - 1] == '-':
+                if puzzle[row_idx, col_idx - 1] in ['-', 'H', 'I']:
                     reverse = True
                     col_idx -= 1
                 else:
@@ -157,23 +160,22 @@ def solver(code):
     i = 0
     while i + 5 < len(code):
         for j in range(i + 1, len(code) - 4):
-            for k in range(i + 2, len(code) - 3):
+            for k in range(j + 1, len(code) - 3):
                 if code[i] != code[j] and code[i] != code[k] and code[j] != code[k] and code[i] * code[j] < 0 and code[j] * code[k] < 0:
                     key = str(code[i]) + str(code[j]) + str(code[k])
                     if key in ''.join([str(x * -1) for x in code[k+1:]]):
                         return 'knotted'
+
         i += 1
     return 'straightened'
 
 
 if __name__ == '__main__':
-    m = get_matrix()
+    filename = 'test_inputs.txt'
+    m = get_matrix(filename)
     for idx, puzzle in enumerate(m):
-        #crosses = puzzle_solver(np.array(puzzle))
-        #knots = 'IHI' in crosses or 'HIH' in crosses
-        #output = f'Case {idx + 1}: {"knotted" if knots else "straightened"}'
-
-        output = simplify_code(test)
-
-        solution = solver(output)
-        print(solution)
+        puzzle = np.array(puzzle)
+        gauss_code = generate_gauss_code(puzzle)
+        # simple_gauss_code = simplify_code(gauss_code)
+        solution = solver(gauss_code)
+        print(f'Case {idx:2}: {solution}')
