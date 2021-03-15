@@ -146,31 +146,33 @@ def simplify_code(code):
     idx = 0
 
     while idx < len(code) - 1:
+
+        if len(code) <= 4:
+            return []
+
         a = code[idx]
         b = code[idx + 1]
 
-        if abs(a) == abs(b):
-            del code[code.index(a)]
-            del code[code.index(b)]
+        if abs(a) == abs(b):  # single loop
+            code.remove(a)
+            code.remove(b)
             idx = 0
             continue
 
-        if np.sign(a) == np.sign(b):
-            temp = ','.join([str(number) for number in code[idx + 2:]])
-
-            if f'{-a},{-b}' in temp or f'{-b},{-a}' in temp:
-                del code[code.index(a)]
-                del code[code.index(b)]
-                del code[code.index(-a)]
-                del code[code.index(-b)]
-                idx = 0
-                continue
+        if np.sign(a) == np.sign(b) and (f'{-a}, {-b}' in str(code) or f'{-b}, {-a}' in str(code)):
+            code.remove(a)
+            code.remove(b)
+            code.remove(-a)
+            code.remove(-b)
+            idx = 0
+            continue
 
         idx += 1
 
+    return code
+
 
 def solver(code):
-    print(code)
     return 'knotted' if code else 'straightened'
 
 
@@ -178,14 +180,14 @@ if __name__ == '__main__':
     from time import time
 
     filename = 'Test.dat'
-    timer = True
+    timer = False
 
     m = get_matrix(filename)
     for idx, puzzle in enumerate(m):
         start = time()
         puzzle = np.array(puzzle)
         gauss_code = generate_gauss_code(puzzle)
-        simplify_code(gauss_code)
+        gauss_code = simplify_code(gauss_code)
         solution = solver(gauss_code)
         end = time()
 
