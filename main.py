@@ -145,7 +145,7 @@ def generate_gauss_code(puzzle):
 def simplify_code(code):
     idx = 0
 
-    while idx < len(code) - 2:
+    while idx < len(code) - 1:
         a = code[idx]
         b = code[idx + 1]
 
@@ -170,6 +170,7 @@ def simplify_code(code):
 
 
 def solver(code):
+    print(code)
     return 'knotted' if code else 'straightened'
 
 
@@ -177,7 +178,7 @@ if __name__ == '__main__':
     from time import time
 
     filename = 'Test.dat'
-    timer = False
+    timer = True
 
     m = get_matrix(filename)
     for idx, puzzle in enumerate(m):
