@@ -143,39 +143,51 @@ def generate_gauss_code(puzzle):
 
 
 def simplify_code(code):
-    i = 0
-    while i < len(code) - 1:
-        if abs(code[i]) == abs(code[i + 1]):
-            if i + 2 == len(code):
-                code = code[0:i]
-            else:
-                code = np.asarray([(lambda x: x - 1 if x > code[i] else x)(x) for x in code], dtype='int')
-                code = np.concatenate((code[0:i], code[i+2:]))
-                i = 0
-        i += 1
-    return code
+    idx = 0
+
+    while idx < len(code) - 2:
+        a = code[idx]
+        b = code[idx + 1]
+
+        if abs(a) == abs(b):
+            del code[code.index(a)]
+            del code[code.index(b)]
+            idx = 0
+            continue
+
+        if np.sign(a) == np.sign(b):
+            temp = ','.join([str(number) for number in code[idx + 2:]])
+
+            if f'{-a},{-b}' in temp or f'{-b},{-a}' in temp:
+                del code[code.index(a)]
+                del code[code.index(b)]
+                del code[code.index(-a)]
+                del code[code.index(-b)]
+                idx = 0
+                continue
+
+        idx += 1
 
 
 def solver(code):
-    i = 0
-    while i + 5 < len(code):
-        for j in range(i + 1, len(code) - 4):
-            for k in range(j + 1, len(code) - 3):
-                if code[i] != code[j] and code[i] != code[k] and code[j] != code[k] and code[i] * code[j] < 0 and code[j] * code[k] < 0:
-                    key = str(code[i]) + str(code[j]) + str(code[k])
-                    if key in ''.join([str(x * -1) for x in code[k+1:]]):
-                        return 'knotted'
-
-        i += 1
-    return 'straightened'
+    return 'knotted' if code else 'straightened'
 
 
 if __name__ == '__main__':
-    filename = 'test_inputs.txt'
+    from time import time
+
+    filename = 'Test.dat'
+    timer = False
+
     m = get_matrix(filename)
     for idx, puzzle in enumerate(m):
+        start = time()
         puzzle = np.array(puzzle)
         gauss_code = generate_gauss_code(puzzle)
-        # simple_gauss_code = simplify_code(gauss_code)
+        simplify_code(gauss_code)
         solution = solver(gauss_code)
-        print(f'Case {idx:2}: {solution}')
+        end = time()
+
+        output = f'Case {idx:2}: {solution:15} | {end - start:10f} ms' if timer else f'Case {idx:2}: {solution}'
+
+        print(output)
