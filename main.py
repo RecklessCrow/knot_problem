@@ -1,7 +1,7 @@
 import numpy as np
 
 
-def get_matrix(filename):
+def parse_puzzles(filename):
     matrix = []
 
     with open(filename) as f:
@@ -17,73 +17,42 @@ def get_matrix(filename):
 
         matrix.append(puzzle)
 
-    return [m for m in matrix if m]
+    return [np.array(m) for m in matrix if m]
 
 
 def find_start_end(puzzle):
-    result = np.where(puzzle == '-')
-    puzzle_pos = list(zip(result[0], result[1]))
     start = None
-    end = None
+    row = True
+    reverse = False
 
-    if 0 in result[1]:
-        positions = np.where(result[1] == 0)[0]
+    first_col = puzzle[:, 0]
+    if '-' in first_col:
+        start = np.where(first_col == '-')[0][0], 0
 
-        row = True
-        reverse = False
-
-        start = puzzle_pos[positions[0]]
-
-        if len(positions) > 1:
-            end = puzzle_pos[positions[1]]
-            return start, end, row, reverse
-
-    if len(puzzle[0]) - 1 in result[1]:
-        positions = np.where(result[1] == len(puzzle[0]) - 1)[0]
-
+    last_col = puzzle[:, -1]
+    if '-' in last_col:
         if start is None:
-            row = True
+            start = np.where(last_col == '-')[0][0], len(puzzle[0]) - 1
             reverse = True
-            start = puzzle_pos[positions[0]]
-            if len(positions) > 1:
-                end = puzzle_pos[positions[1]]
-                return start, end, row, reverse
         else:
-            end = puzzle_pos[positions[0]]
+            end = np.where(last_col == '-')[0][0], len(puzzle[0]) - 1,
             return start, end, row, reverse
 
-    result = np.where(puzzle == '|')
-    puzzle_pos = list(zip(result[0], result[1]))
-
-    if 0 in result[0]:
-        positions = np.where(result[0] == 0)[0]
-
+    first_row = puzzle[0]
+    if '|' in first_row:
         if start is None:
+            start = 0, np.where(first_row == '|')[0][0]
             row = False
-            reverse = False
-            start = puzzle_pos[positions[0]]
-            if len(positions) > 1:
-                end = puzzle_pos[positions[1]]
-                return start, end, row, reverse
         else:
-            end = puzzle_pos[positions[0]]
+            end = 0, np.where(first_row == '|')[0][0]
             return start, end, row, reverse
 
-    if len(puzzle) - 1 in result[0]:
-        positions = np.where(result[0] == len(puzzle) - 1)[0]
+    last_row = puzzle[-1]
+    if '|' in last_row:
+        end = len(puzzle) - 1, np.where(last_row == '|')[0][0]
+        return start, end, row, reverse
 
-        if start is None:
-            row = False
-            reverse = True
-            start = puzzle_pos[positions[0]]
-            if len(positions) > 1:
-                end = puzzle_pos[positions[1]]
-                return start, end, row, reverse
-        else:
-            end = puzzle_pos[positions[0]]
-            return start, end, row, reverse
-
-    return None, None, None, None
+    raise AttributeError('No start or end position exists')
 
 
 def generate_gauss_code(puzzle):
@@ -99,16 +68,20 @@ def generate_gauss_code(puzzle):
     while pos != end:
         char = puzzle[pos]
 
-        if row:
-            if char == 'H' or char == 'I':
-                if pos not in cross_dict:
-                    cross_dict[pos] = cross_counter
-                    cross_counter += 1
-                val = cross_dict[pos] if char == 'H' else -cross_dict[pos]
-                crosses.append(val)
+        if char == 'H' or char == 'I':
+            if pos not in cross_dict:
+                cross_dict[pos] = cross_counter
+                cross_counter += 1
 
-            if char == '+':
-                row = False
+            if row:
+                val = cross_dict[pos] if char == 'H' else -cross_dict[pos]
+            else:
+                val = -cross_dict[pos] if char == 'H' else cross_dict[pos]
+
+            crosses.append(val)
+
+        if char == '+':
+            if row:
                 if puzzle[row_idx - 1, col_idx] in ['|', 'H', 'I']:
                     reverse = True
                     row_idx -= 1
@@ -116,24 +89,18 @@ def generate_gauss_code(puzzle):
                     reverse = False
                     row_idx += 1
             else:
-                col_idx += 1 if not reverse else -1
-
-        else:
-            if char == 'H' or char == 'I':
-                if pos not in cross_dict:
-                    cross_dict[pos] = cross_counter
-                    cross_counter += 1
-                val = -cross_dict[pos] if char == 'H' else cross_dict[pos]
-                crosses.append(val)
-
-            if char == '+':
-                row = True
                 if puzzle[row_idx, col_idx - 1] in ['-', 'H', 'I']:
                     reverse = True
                     col_idx -= 1
                 else:
                     reverse = False
                     col_idx += 1
+
+            row = not row
+
+        else:
+            if row:
+                col_idx += 1 if not reverse else -1
             else:
                 row_idx += 1 if not reverse else -1
 
@@ -159,7 +126,7 @@ def simplify_code(code):
             idx = 0
             continue
 
-        if np.sign(a) == np.sign(b) and (f'{-a}, {-b}' in str(code) or f'{-b}, {-a}' in str(code)):
+        if np.sign(a) == np.sign(b) and (f'{-a}, {-b}' in str(code) or f'{-b}, {-a}' in str(code)):  # double loop
             code.remove(a)
             code.remove(b)
             code.remove(-a)
@@ -172,25 +139,16 @@ def simplify_code(code):
     return code
 
 
-def solver(code):
-    return 'knotted' if code else 'straightened'
+def main():
+    filename = 'test_inputs.txt'
+    puzzles = parse_puzzles(filename)
+
+    for idx, puzzle in enumerate(puzzles):
+        gauss_code = generate_gauss_code(puzzle)
+        gauss_code = simplify_code(gauss_code)
+        knot_string = 'knotted' if gauss_code else 'straightened'
+        print(f'Case {idx:2}: {knot_string}')
 
 
 if __name__ == '__main__':
-    from time import time
-
-    filename = 'Test.dat'
-    timer = False
-
-    m = get_matrix(filename)
-    for idx, puzzle in enumerate(m):
-        start = time()
-        puzzle = np.array(puzzle)
-        gauss_code = generate_gauss_code(puzzle)
-        gauss_code = simplify_code(gauss_code)
-        solution = solver(gauss_code)
-        end = time()
-
-        output = f'Case {idx:2}: {solution:15} | {end - start:10f} ms' if timer else f'Case {idx:2}: {solution}'
-
-        print(output)
+    main()
